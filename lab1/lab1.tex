@@ -175,6 +175,18 @@ Pin -- это инфраструктура динамического оснащ
 \end{itemize}
 \end{frame}
 
+
+%------------------------------------------------
+
+\begin{frame}
+\frametitle{Введение: принцип работы Pin}
+
+\begin{figure}
+\includegraphics[scale=1]{302144}
+\caption{Взаимодействие фреймворка и приложения}
+\end{figure}
+
+\end{frame}
 %------------------------------------------------
 
 \begin{frame}
@@ -317,23 +329,23 @@ VOID Instruction(INS ins, VOID *v) {
     // Итерируемся по всем операндам и инструкциям
     for (UINT32 memOp = 0; memOp < memOperands; memOp++)
     {
-        // Для операций чтения...
+        // Для операций чтения:
         if (INS_MemoryOperandIsRead(ins, memOp))
         {
             INS_InsertPredicatedCall(
-                ins, IPOINT_BEFORE, (AFUNPTR)RecordMemRead, //... передаём указатель на RecordMemRead
-                IARG_INST_PTR,
-                IARG_MEMORYOP_EA, memOp,
-                IARG_END);
+                ins, // Оснащаемая процедура
+                IPOINT_BEFORE, //куда её вставлять (ПЕРЕД требуемой инструкцией)
+                (AFUNPTR)RecordMemRead, //указатель на функцию анализа RecordMemRead
+                IARG_INST_PTR, // аргументы, передаваемые в RecordMemRead
+                IARG_MEMORYOP_EA, memOp, 
+                IARG_END); // признак конца списка аргументов
         }
-        // Для операций записи...
+        // Для операций записи, аналогично
         if (INS_MemoryOperandIsWritten(ins, memOp))
         {
             INS_InsertPredicatedCall(
-                ins, IPOINT_BEFORE, (AFUNPTR)RecordMemWrite, //... передаём указатель на RecordMemWrite
-                IARG_INST_PTR,
-                IARG_MEMORYOP_EA, memOp,
-                IARG_END);
+                ins, IPOINT_BEFORE, (AFUNPTR)RecordMemWrite, //указатель на функцию анализа RecordMemWrite
+                IARG_INST_PTR, IARG_MEMORYOP_EA, memOp, IARG_END);
         }
     }
 }
@@ -378,65 +390,68 @@ int main(int argc, char *argv[]) {
 \subsection{Запуск pintool}
 %------------------------------------------------
 
-\begin{frame}
-\frametitle{Запуск}
-
-\begin{figure}
-\includegraphics[scale=1]{302144}
-\caption{Взаимодействие фреймворка и приложения}
-\end{figure}
-
-\end{frame}
-
-%------------------------------------------------
-
-\begin{frame}
-\frametitle{Запуск}
-
-\begin{figure}
-\includegraphics[scale=0.6]{394151}
-\caption{модель перехвата функций}
-\end{figure}
-
-\end{frame}
-
-%------------------------------------------------
-
 \begin{frame}[fragile] % Need to use the fragile option when verbatim is used in the slide
-\frametitle{Запуск}
+\frametitle{Запуск pin}
+
+Проведём исследование стандартной утилиты pwd
+
 \begin{block}{Исследование системной утилиты pwd}
 \begin{verbatim}
 $ /opt/pin/intel64/bin/pinbin -t /opt/pin/source/tools/SimpleExamples/obj-intel64/pinatrace.so -- /bin/pwd
+\end{verbatim}
+\end{block}
 
+Команда запуска состоит из трёх частей:
+\begin{itemize}
+\item /opt/pin/intel64/bin/pinbin путь к утилите pin
+\item -t /opt/pin/source/tools/SimpleExamples/obj-intel64/pinatrace.so путь к рассмотренному ранее pintool (фактически представляет из себя динамическую библиотеку)
+\item -{}- /bin/pwd путь к исследуемому бинарнику
+\end{itemize}
+
+\end{frame}
+%------------------------------------------------
+
+\begin{frame}[fragile] % Need to use the fragile option when verbatim is used in the slide
+\frametitle{Результат запуска}
+\begin{block}{Журнал исследования системной утилиты pwd\\ (последние 10 строк, общий объём порядка 3,5Мб)}
+\begin{verbatim}
 $ tail -n 25 pinatrace.out 
-0x7f5c6717bfc0: R     0x7f5c674c39a0  8                  0
-0x7f5c6717bfc4: R     0x7f5c674c39a8  8                  0
-0x7f5c6717bf30: R     0x7f5c674c5948  4                0x2
-0x7f5c6717bf36: W     0x7f5c674c5940  8                  0
-0x7f5c6717bf4a: R     0x7f5c674c39e8  8                  0
-0x7f5c6717bf5a: R     0x7f5c674c5954  4                  0
-0x7f5c6717bf88: R     0x7ffe8af72418  8                  0
-0x7f5c6717bf89: R     0x7ffe8af72420  8     0x7f5c674da700
-0x7f5c6717bf8a: R     0x7ffe8af72428  8     0x7f5c674bf750
-0x7f5c6717bf8c: R     0x7ffe8af72430  8     0x7f5c674c4dc0
-0x7f5c6717bf8e: R     0x7ffe8af72438  8                  0
-0x7f5c6717bf90: R     0x7ffe8af72440  8                  0
-0x7f5c6717bf92: R     0x7ffe8af72448  8     0x7f5c6717c07a
-0x7f5c6717c07a: R     0x7f5c674c4600  8     0x7f5c674c3980
-0x7f5c6717c090: R     0x7f5c674c3980  4         0xfbad2088
-0x7f5c6717c178: W     0x7f5c674c3a40  4         0xffffffff
-0x7f5c6717c182: R     0x7f5c674c39e8  8                  0
-0x7f5c6717c196: R     0x7ffe8af72458  8                  0
-0x7f5c6717c197: R     0x7ffe8af72460  8     0x7f5c674bf748
-0x7f5c6717c198: R     0x7ffe8af72468  8     0x7f5c674bf750
-0x7f5c6717c19a: R     0x7ffe8af72470  8     0x7f5c674c4dc0
-0x7f5c6717c19c: R     0x7ffe8af72478  8     0x7f5c67138ccf
-0x7f5c67138cda: W     0x7ffe8af72478  8     0x7f5c67138cdf
-0x7f5c671c9fe3: R     0x7f5c674c2e68  8 0xffffffffffffff90
+0x7f5c6717c178: W     0x7f5c674c3a40
+0x7f5c6717c182: R     0x7f5c674c39e8
+0x7f5c6717c196: R     0x7ffe8af72458
+0x7f5c6717c197: R     0x7ffe8af72460
+0x7f5c6717c198: R     0x7ffe8af72468
+0x7f5c6717c19a: R     0x7ffe8af72470
+0x7f5c6717c19c: R     0x7ffe8af72478
+0x7f5c67138cda: W     0x7ffe8af72478
+0x7f5c671c9fe3: R     0x7f5c674c2e68
 #eof
 \end{verbatim}
 \end{block}
 
+Каждая строка состоит из трёх полей
+\begin{itemize}
+\item Адрес инструментованной инструкции (IARG\_INST\_PTR), т.е. куда передано управление
+\item Вид операции (чтение или запись)
+\item Адрес операции (IARG\_MEMORYOP\_EA), т.е. эффективный адрес операции с памятью
+\end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\section{Заключение}
+%------------------------------------------------
+
+\begin{frame}
+\frametitle{Заключение}
+Pin является эффективным инструментом для тонкого изучения работы программы.\\~\\
+
+Основными достоинствами инструмента по нашему мнению является:
+\begin{itemize}
+\item Отсутствие необходимости изучать дополнительные языки -- для статического анализа требуется изучить Promela, для работы с GDB нужны знания Assembler, для работы с LLVM понимание синтаксиса IR
+\item Возможность работать не имея исходных кодов -- достаточно частая необходимость, при изучении вредоносного ПО
+\item Управляемая детализация отчётов - можно отфильтровать то, что требуется рассмотреть
+\end{itemize}
 \end{frame}
 
 %------------------------------------------------
@@ -448,7 +463,7 @@ $ tail -n 25 pinatrace.out
 \footnotesize{
 \begin{thebibliography}{99} % Beamer does not support BibTeX so references must be inserted manually as below
 \bibitem[Brays, 2014]{p1} Хади Браис
-\newblock Инструментирование приложений: Анализ приложений с помощью Pin
+\newblock Инструментированные приложений: Анализ приложений с помощью Pin
 \newblock \emph{MSDN Magazine Blog} - ноябрь, 2014.
 \end{thebibliography}
 
@@ -470,4 +485,4 @@ $ tail -n 25 pinatrace.out
 
 %----------------------------------------------------------------------------------------
 
-\end{document} 
+\end{document}
