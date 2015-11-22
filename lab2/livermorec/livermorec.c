@@ -1,3 +1,6 @@
+// Don't forget to to link with the math libraries
+// $ gcc livermorec.c -lm -o livermorec
+
 /* Livermore Loops coded in C        La//test File Modification  20 Oct 92,
  *  by Tim Peters, Kendall Square Res. Corp. tim@ksr.com, ksr!tim@uunet.uu.net
  *     SUBROUTINE KERNEL( TK)  replaces the Fortran routine in LFK //Test program.
@@ -651,5 +654,713 @@ int main(int argc, char** argv)
     argument = 9;
     //TEST( &argument );
 
+    /*
+     *******************************************************************
+     *   Kernel 10 -- difference predictors
+     *******************************************************************
+     *    DO 10  L= 1,Loop
+     *    DO 10  i= 1,n
+     *    AR      =      CX(5,i)
+     *    BR      = AR - PX(5,i)
+     *    PX(5,i) = AR
+     *    CR      = BR - PX(6,i)
+     *    PX(6,i) = BR
+     *    AR      = CR - PX(7,i)
+     *    PX(7,i) = CR
+     *    BR      = AR - PX(8,i)
+     *    PX(8,i) = AR
+     *    CR      = BR - PX(9,i)
+     *    PX(9,i) = BR
+     *    AR      = CR - PX(10,i)
+     *    PX(10,i)= CR
+     *    BR      = AR - PX(11,i)
+     *    PX(11,i)= AR
+     *    CR      = BR - PX(12,i)
+     *    PX(12,i)= BR
+     *    PX(14,i)= CR - PX(13,i)
+     *    PX(13,i)= CR
+     * 10 CONTINUE
+     */
+
+    for ( l=1 ; l<=loop ; l++ ) {
+        for ( i=0 ; i<n ; i++ ) {
+            ar        =      cx[i][ 4];
+            br        = ar - px[i][ 4];
+            px[i][ 4] = ar;
+            cr        = br - px[i][ 5];
+            px[i][ 5] = br;
+            ar        = cr - px[i][ 6];
+            px[i][ 6] = cr;
+            br        = ar - px[i][ 7];
+            px[i][ 7] = ar;
+            cr        = br - px[i][ 8];
+            px[i][ 8] = br;
+            ar        = cr - px[i][ 9];
+            px[i][ 9] = cr;
+            br        = ar - px[i][10];
+            px[i][10] = ar;
+            cr        = br - px[i][11];
+            px[i][11] = br;
+            px[i][13] = cr - px[i][12];
+            px[i][12] = cr;
+        }
+    }
+    argument = 10;
+    //TEST( &argument );
+
+    /*
+     *******************************************************************
+     *   Kernel 11 -- first sum
+     *******************************************************************
+     *    DO 11 L = 1,Loop
+     *        X(1)= Y(1)
+     *    DO 11 k = 2,n
+     * 11     X(k)= X(k-1) + Y(k)
+     */
+
+    for ( l=1 ; l<=loop ; l++ ) {
+        x[0] = y[0];
+        for ( k=1 ; k<n ; k++ ) {
+            x[k] = x[k-1] + y[k];
+        }
+    }
+    argument = 11;
+    //TEST( &argument );
+
+    /*
+     *******************************************************************
+     *   Kernel 12 -- first difference
+     *******************************************************************
+     *    DO 12 L = 1,Loop
+     *    DO 12 k = 1,n
+     * 12     X(k)= Y(k+1) - Y(k)
+     */
+
+    for ( l=1 ; l<=loop ; l++ ) {
+        for ( k=0 ; k<n ; k++ ) {
+            x[k] = y[k+1] - y[k];
+        }
+    }
+    argument = 12;
+    //TEST( &argument );
+
+    /*
+     *******************************************************************
+     *   Kernel 13 -- 2-D PIC (Particle In Cell)
+     *******************************************************************
+     *    DO  13     L= 1,Loop
+     *    DO  13    ip= 1,n
+     *              i1= P(1,ip)
+     *              j1= P(2,ip)
+     *              i1=        1 + MOD2N(i1,64)
+     *              j1=        1 + MOD2N(j1,64)
+     *         P(3,ip)= P(3,ip)  + B(i1,j1)
+     *         P(4,ip)= P(4,ip)  + C(i1,j1)
+     *         P(1,ip)= P(1,ip)  + P(3,ip)
+     *         P(2,ip)= P(2,ip)  + P(4,ip)
+     *              i2= P(1,ip)
+     *              j2= P(2,ip)
+     *              i2=            MOD2N(i2,64)
+     *              j2=            MOD2N(j2,64)
+     *         P(1,ip)= P(1,ip)  + Y(i2+32)
+     *         P(2,ip)= P(2,ip)  + Z(j2+32)
+     *              i2= i2       + E(i2+32)
+     *              j2= j2       + F(j2+32)
+     *        H(i2,j2)= H(i2,j2) + 1.0
+     * 13 CONTINUE
+     */
+
+    for ( l=1 ; l<=loop ; l++ ) {
+        for ( ip=0 ; ip<n ; ip++ ) {
+            i1 = p[ip][0];
+            j1 = p[ip][1];
+            i1 &= 64-1;
+            j1 &= 64-1;
+            p[ip][2] += b[j1][i1];
+            p[ip][3] += c[j1][i1];
+            p[ip][0] += p[ip][2];
+            p[ip][1] += p[ip][3];
+            i2 = p[ip][0];
+            j2 = p[ip][1];
+            i2 = ( i2 & 64-1 ) - 1 ;
+            j2 = ( j2 & 64-1 ) - 1 ;
+            p[ip][0] += y[i2+32];
+            p[ip][1] += z[j2+32];
+            i2 += e[i2+32];
+            j2 += f[j2+32];
+            h[j2][i2] += 1.0;
+        }
+    }
+    argument = 13;
+    //TEST( &argument );
+
+    /*
+     *******************************************************************
+     *   Kernel 14 -- 1-D PIC (Particle In Cell)
+     *******************************************************************
+     *    DO   14   L= 1,Loop
+     *    DO   141  k= 1,n
+     *          VX(k)= 0.0
+     *          XX(k)= 0.0
+     *          IX(k)= INT(  GRD(k))
+     *          XI(k)= REAL( IX(k))
+     *         EX1(k)= EX   ( IX(k))
+     *        DEX1(k)= DEX  ( IX(k))
+     *41  CONTINUE
+     *    DO   142  k= 1,n
+     *          VX(k)= VX(k) + EX1(k) + (XX(k) - XI(k))*DEX1(k)
+     *          XX(k)= XX(k) + VX(k)  + FLX
+     *          IR(k)= XX(k)
+     *          RX(k)= XX(k) - IR(k)
+     *          IR(k)= MOD2N(  IR(k),2048) + 1
+     *          XX(k)= RX(k) + IR(k)
+     *42  CONTINUE
+     *    DO  14    k= 1,n
+     *    RH(IR(k)  )= RH(IR(k)  ) + 1.0 - RX(k)
+     *    RH(IR(k)+1)= RH(IR(k)+1) + RX(k)
+     *14  CONTINUE
+     */
+
+    for ( l=1 ; l<=loop ; l++ ) {
+        for ( k=0 ; k<n ; k++ ) {
+            vx[k] = 0.0;
+            xx[k] = 0.0;
+            ix[k] = (long) grd[k];
+            xi[k] = (double) ix[k];
+            ex1[k] = ex[ ix[k] - 1 ];
+            dex1[k] = dex[ ix[k] - 1 ];
+        }
+        for ( k=0 ; k<n ; k++ ) {
+            vx[k] = vx[k] + ex1[k] + ( xx[k] - xi[k] )*dex1[k];
+            xx[k] = xx[k] + vx[k]  + flx;
+            ir[k] = xx[k];
+            rx[k] = xx[k] - ir[k];
+            ir[k] = ( ir[k] & 2048-1 ) + 1;
+            xx[k] = rx[k] + ir[k];
+        }
+        for ( k=0 ; k<n ; k++ ) {
+            rh[ ir[k]-1 ] += 1.0 - rx[k];
+            rh[ ir[k]   ] += rx[k];
+        }
+    }
+    argument = 14;
+    //TEST( &argument );
+
+    /*
+     *******************************************************************
+     *   Kernel 15 -- Casual Fortran.  Development version
+     *******************************************************************
+     *      DO 45  L = 1,Loop
+     *             NG= 7
+     *             NZ= n
+     *             AR= 0.053
+     *             BR= 0.073
+     * 15   DO 45  j = 2,NG
+     *      DO 45  k = 2,NZ
+     *             IF( j-NG) 31,30,30
+     * 30     VY(k,j)= 0.0
+     *                 GO TO 45
+     * 31          IF( VH(k,j+1) -VH(k,j)) 33,33,32
+     * 32           T= AR
+     *                 GO TO 34
+     * 33           T= BR
+     * 34          IF( VF(k,j) -VF(k-1,j)) 35,36,36
+     * 35           R= MAX( VH(k-1,j), VH(k-1,j+1))
+     *              S= VF(k-1,j)
+     *                 GO TO 37
+     * 36           R= MAX( VH(k,j),   VH(k,j+1))
+     *              S= VF(k,j)
+     * 37     VY(k,j)= SQRT( VG(k,j)**2 +R*R)*T/S
+     * 38          IF( k-NZ) 40,39,39
+     * 39     VS(k,j)= 0.
+     *                 GO TO 45
+     * 40          IF( VF(k,j) -VF(k,j-1)) 41,42,42
+     * 41           R= MAX( VG(k,j-1), VG(k+1,j-1))
+     *              S= VF(k,j-1)
+     *              T= BR
+     *                 GO TO 43
+     * 42           R= MAX( VG(k,j),   VG(k+1,j))
+     *              S= VF(k,j)
+     *              T= AR
+     * 43     VS(k,j)= SQRT( VH(k,j)**2 +R*R)*T/S
+     * 45    CONTINUE
+     */
+
+#pragma intrinsic sqrt
+
+    for ( l=1 ; l<=loop ; l++ ) {
+        ng = 7;
+        nz = n;
+        ar = 0.053;
+        br = 0.073;
+        for ( j=1 ; j<ng ; j++ ) {
+            for ( k=1 ; k<nz ; k++ ) {
+                if ( (j+1) >= ng ) {
+                    vy[j][k] = 0.0;
+                    continue;
+                }
+                if ( vh[j+1][k] > vh[j][k] ) {
+                    t = ar;
+                }
+                else {
+                    t = br;
+                }
+                if ( vf[j][k] < vf[j][k-1] ) {
+                    if ( vh[j][k-1] > vh[j+1][k-1] )
+                        r = vh[j][k-1];
+                    else
+                        r = vh[j+1][k-1];
+                    s = vf[j][k-1];
+                }
+                else {
+                    if ( vh[j][k] > vh[j+1][k] )
+                        r = vh[j][k];
+                    else
+                        r = vh[j+1][k];
+                    s = vf[j][k];
+                }
+                vy[j][k] = sqrt( vg[j][k]*vg[j][k] + r*r )* t/s;
+                if ( (k+1) >= nz ) {
+                    vs[j][k] = 0.0;
+                    continue;
+                }
+                if ( vf[j][k] < vf[j-1][k] ) {
+                    if ( vg[j-1][k] > vg[j-1][k+1] )
+                        r = vg[j-1][k];
+                    else
+                        r = vg[j-1][k+1];
+                    s = vf[j-1][k];
+                    t = br;
+                }
+                else {
+                    if ( vg[j][k] > vg[j][k+1] )
+                        r = vg[j][k];
+                    else
+                        r = vg[j][k+1];
+                    s = vf[j][k];
+                    t = ar;
+                }
+                vs[j][k] = sqrt( vh[j][k]*vh[j][k] + r*r )* t / s;
+            }
+        }
+    }
+    argument = 15;
+    //TEST( &argument );
+
+    /*
+     *******************************************************************
+     *   Kernel 16 -- Monte Carlo search loop
+     *******************************************************************
+     *          II= n/3
+     *          LB= II+II
+     *          k2= 0
+     *          k3= 0
+     *    DO 485 L= 1,Loop
+     *           m= 1
+     *405       i1= m
+     *410       j2= (n+n)*(m-1)+1
+     *    DO 470 k= 1,n
+     *          k2= k2+1
+     *          j4= j2+k+k
+     *          j5= ZONE(j4)
+     *          IF( j5-n      ) 420,475,450
+     *415       IF( j5-n+II   ) 430,425,425
+     *420       IF( j5-n+LB   ) 435,415,415
+     *425       IF( PLAN(j5)-R) 445,480,440
+     *430       IF( PLAN(j5)-S) 445,480,440
+     *435       IF( PLAN(j5)-T) 445,480,440
+     *440       IF( ZONE(j4-1)) 455,485,470
+     *445       IF( ZONE(j4-1)) 470,485,455
+     *450       k3= k3+1
+     *          IF( D(j5)-(D(j5-1)*(T-D(j5-2))**2+(S-D(j5-3))**2
+     *   .                        +(R-D(j5-4))**2)) 445,480,440
+     *455        m= m+1
+     *          IF( m-ZONE(1) ) 465,465,460
+     *460        m= 1
+     *465       IF( i1-m) 410,480,410
+     *470 CONTINUE
+     *475 CONTINUE
+     *480 CONTINUE
+     *485 CONTINUE
+     */
+
+    ii = n / 3;
+    lb = ii + ii;
+    k3 = k2 = 0;
+    for ( l=1 ; l<=loop ; l++ ) {
+        i1 = m = 1;
+        label410:
+        j2 = ( n + n )*( m - 1 ) + 1;
+        for ( k=1 ; k<=n ; k++ ) {
+            k2++;
+            j4 = j2 + k + k;
+            j5 = zone[j4-1];
+            if ( j5 < n ) {
+                if ( j5+lb < n ) {              /* 420 */
+                    tmp = plan[j5-1] - t;       /* 435 */
+                } else {
+                    if ( j5+ii < n ) {          /* 415 */
+                        tmp = plan[j5-1] - s;   /* 430 */
+                    } else {
+                        tmp = plan[j5-1] - r;   /* 425 */
+                    }
+                }
+            } else if( j5 == n ) {
+                break;                          /* 475 */
+            } else {
+                k3++;                           /* 450 */
+                tmp=(d[j5-1]-(d[j5-2]*(t-d[j5-3])*(t-d[j5-3])+(s-d[j5-4])*
+                              (s-d[j5-4])+(r-d[j5-5])*(r-d[j5-5])));
+            }
+            if ( tmp < 0.0 ) {
+                if ( zone[j4-2] < 0 )           /* 445 */
+                    continue;                   /* 470 */
+                else if ( !zone[j4-2] )
+                    break;                      /* 480 */
+            } else if ( tmp ) {
+                if ( zone[j4-2] > 0 )           /* 440 */
+                    continue;                   /* 470 */
+                else if ( !zone[j4-2] )
+                    break;                      /* 480 */
+            } else break;                       /* 485 */
+            m++;                                /* 455 */
+            if ( m > zone[0] )
+                m = 1;                          /* 460 */
+            if ( i1-m )                         /* 465 */
+                goto label410;
+            else
+                break;
+        }
+    }
+    argument = 16;
+    //TEST( &argument );
+
+    /*
+     *******************************************************************
+     *   Kernel 17 -- implicit, conditional computation
+     *******************************************************************
+     *          DO 62 L= 1,Loop
+     *                i= n
+     *                j= 1
+     *              INK= -1
+     *            SCALE= 5./3.
+     *              XNM= 1./3.
+     *               E6= 1.03/3.07
+     *                   GO TO 61
+     *60             E6= XNM*VSP(i)+VSTP(i)
+     *          VXNE(i)= E6
+     *              XNM= E6
+     *           VE3(i)= E6
+     *                i= i+INK
+     *               IF( i.EQ.j) GO TO  62
+     *61             E3= XNM*VLR(i) +VLIN(i)
+     *             XNEI= VXNE(i)
+     *          VXND(i)= E6
+     *              XNC= SCALE*E3
+     *               IF( XNM .GT.XNC) GO TO  60
+     *               IF( XNEI.GT.XNC) GO TO  60
+     *           VE3(i)= E3
+     *               E6= E3+E3-XNM
+     *          VXNE(i)= E3+E3-XNEI
+     *              XNM= E6
+     *                i= i+INK
+     *               IF( i.NE.j) GO TO 61
+     * 62 CONTINUE
+     */
+
+    for ( l=1 ; l<=loop ; l++ ) {
+        i = n-1;
+        j = 0;
+        ink = -1;
+        scale = 5.0 / 3.0;
+        xnm = 1.0 / 3.0;
+        e6 = 1.03 / 3.07;
+        goto l61;
+l60:    e6 = xnm*vsp[i] + vstp[i];
+        vxne[i] = e6;
+        xnm = e6;
+        ve3[i] = e6;
+        i += ink;
+        if ( i==j ) goto l62;
+l61:    e3 = xnm*vlr[i] + vlin[i];
+        xnei = vxne[i];
+        vxnd[i] = e6;
+        xnc = scale*e3;
+        if ( xnm > xnc ) goto l60;
+        if ( xnei > xnc ) goto l60;
+        ve3[i] = e3;
+        e6 = e3 + e3 - xnm;
+        vxne[i] = e3 + e3 - xnei;
+        xnm = e6;
+        i += ink;
+        if ( i != j ) goto l61;
+l62:;
+    }
+
+    argument = 17;
+    //TEST( &argument );
+
+    /*
+     *******************************************************************
+     *   Kernel 18 - 2-D explicit hydrodynamics fragment
+     *******************************************************************
+     *       DO 75  L= 1,Loop
+     *              T= 0.0037
+     *              S= 0.0041
+     *             KN= 6
+     *             JN= n
+     *       DO 70  k= 2,KN
+     *       DO 70  j= 2,JN
+     *        ZA(j,k)= (ZP(j-1,k+1)+ZQ(j-1,k+1)-ZP(j-1,k)-ZQ(j-1,k))
+     *   .            *(ZR(j,k)+ZR(j-1,k))/(ZM(j-1,k)+ZM(j-1,k+1))
+     *        ZB(j,k)= (ZP(j-1,k)+ZQ(j-1,k)-ZP(j,k)-ZQ(j,k))
+     *   .            *(ZR(j,k)+ZR(j,k-1))/(ZM(j,k)+ZM(j-1,k))
+     * 70    CONTINUE
+     *       DO 72  k= 2,KN
+     *       DO 72  j= 2,JN
+     *        ZU(j,k)= ZU(j,k)+S*(ZA(j,k)*(ZZ(j,k)-ZZ(j+1,k))
+     *   .                    -ZA(j-1,k) *(ZZ(j,k)-ZZ(j-1,k))
+     *   .                    -ZB(j,k)   *(ZZ(j,k)-ZZ(j,k-1))
+     *   .                    +ZB(j,k+1) *(ZZ(j,k)-ZZ(j,k+1)))
+     *        ZV(j,k)= ZV(j,k)+S*(ZA(j,k)*(ZR(j,k)-ZR(j+1,k))
+     *   .                    -ZA(j-1,k) *(ZR(j,k)-ZR(j-1,k))
+     *   .                    -ZB(j,k)   *(ZR(j,k)-ZR(j,k-1))
+     *   .                    +ZB(j,k+1) *(ZR(j,k)-ZR(j,k+1)))
+     * 72    CONTINUE
+     *       DO 75  k= 2,KN
+     *       DO 75  j= 2,JN
+     *        ZR(j,k)= ZR(j,k)+T*ZU(j,k)
+     *        ZZ(j,k)= ZZ(j,k)+T*ZV(j,k)
+     * 75    CONTINUE
+     */
+
+    for ( l=1 ; l<=loop ; l++ ) {
+        t = 0.0037;
+        s = 0.0041;
+        kn = 6;
+        jn = n;
+        for ( k=1 ; k<kn ; k++ ) {
+#pragma nohazard
+          for ( j=1 ; j<jn ; j++ ) {
+              za[k][j] = ( zp[k+1][j-1] +zq[k+1][j-1] -zp[k][j-1] -zq[k][j-1] )*
+                         ( zr[k][j] +zr[k][j-1] ) / ( zm[k][j-1] +zm[k+1][j-1]);
+              zb[k][j] = ( zp[k][j-1] +zq[k][j-1] -zp[k][j] -zq[k][j] ) *
+                         ( zr[k][j] +zr[k-1][j] ) / ( zm[k][j] +zm[k][j-1]);
+          }
+        }
+        for ( k=1 ; k<kn ; k++ ) {
+#pragma nohazard
+            for ( j=1 ; j<jn ; j++ ) {
+                zu[k][j] += s*( za[k][j]   *( zz[k][j] - zz[k][j+1] ) -
+                                za[k][j-1] *( zz[k][j] - zz[k][j-1] ) -
+                                zb[k][j]   *( zz[k][j] - zz[k-1][j] ) +
+                                zb[k+1][j] *( zz[k][j] - zz[k+1][j] ) );
+                zv[k][j] += s*( za[k][j]   *( zr[k][j] - zr[k][j+1] ) -
+                                za[k][j-1] *( zr[k][j] - zr[k][j-1] ) -
+                                zb[k][j]   *( zr[k][j] - zr[k-1][j] ) +
+                                zb[k+1][j] *( zr[k][j] - zr[k+1][j] ) );
+            }
+        }
+        for ( k=1 ; k<kn ; k++ ) {
+#pragma nohazard
+            for ( j=1 ; j<jn ; j++ ) {
+                zr[k][j] = zr[k][j] + t*zu[k][j];
+                zz[k][j] = zz[k][j] + t*zv[k][j];
+            }
+        }
+    }
+    argument = 18;
+    //TEST( &argument );
+
+    /*
+     *******************************************************************
+     *   Kernel 19 -- general linear recurrence equations
+     *******************************************************************
+     *               KB5I= 0
+     *           DO 194 L= 1,Loop
+     *           DO 191 k= 1,n
+     *         B5(k+KB5I)= SA(k) +STB5*SB(k)
+     *               STB5= B5(k+KB5I) -STB5
+     *191        CONTINUE
+     *192        DO 193 i= 1,n
+     *                  k= n-i+1
+     *         B5(k+KB5I)= SA(k) +STB5*SB(k)
+     *               STB5= B5(k+KB5I) -STB5
+     *193        CONTINUE
+     *194 CONTINUE
+     */
+
+    kb5i = 0;
+    for ( l=1 ; l<=loop ; l++ ) {
+        for ( k=0 ; k<n ; k++ ) {
+            b5[k+kb5i] = sa[k] + stb5*sb[k];
+            stb5 = b5[k+kb5i] - stb5;
+        }
+        for ( i=1 ; i<=n ; i++ ) {
+            k = n - i ;
+            b5[k+kb5i] = sa[k] + stb5*sb[k];
+            stb5 = b5[k+kb5i] - stb5;
+        }
+    }
+    argument = 19;
+    //TEST( &argument );
+
+    /*
+     *******************************************************************
+     *   Kernel 20 -- Discrete ordinates transport, conditional recurrence on xx
+     *******************************************************************
+     *    DO 20 L= 1,Loop
+     *    DO 20 k= 1,n
+     *         DI= Y(k)-G(k)/( XX(k)+DK)
+     *         DN= 0.2
+     *         IF( DI.NE.0.0) DN= MAX( S,MIN( Z(k)/DI, T))
+     *       X(k)= ((W(k)+V(k)*DN)* XX(k)+U(k))/(VX(k)+V(k)*DN)
+     *    XX(k+1)= (X(k)- XX(k))*DN+ XX(k)
+     * 20 CONTINUE
+     */
+
+    for ( l=1 ; l<=loop ; l++ ) {
+        for ( k=0 ; k<n ; k++ ) {
+            di = y[k] - g[k] / ( xx[k] + dk );
+            dn = 0.2;
+            if ( di ) {
+                dn = z[k]/di ;
+                if ( t < dn ) dn = t;
+                if ( s > dn ) dn = s;
+            }
+            x[k] = ( ( w[k] + v[k]*dn )* xx[k] + u[k] ) / ( vx[k] + v[k]*dn );
+            xx[k+1] = ( x[k] - xx[k] )* dn + xx[k];
+        }
+    }
+    argument = 20;
+    //TEST( &argument );
+
+    /*
+     *******************************************************************
+     *   Kernel 21 -- matrix*matrix product
+     *******************************************************************
+     *    DO 21 L= 1,Loop
+     *    DO 21 k= 1,25
+     *    DO 21 i= 1,25
+     *    DO 21 j= 1,n
+     *    PX(i,j)= PX(i,j) +VY(i,k) * CX(k,j)
+     * 21 CONTINUE
+     */
+
+    for ( l=1 ; l<=loop ; l++ ) {
+        for ( k=0 ; k<25 ; k++ ) {
+            for ( i=0 ; i<25 ; i++ ) {
+#pragma nohazard
+                for ( j=0 ; j<n ; j++ ) {
+                    px[j][i] += vy[k][i] * cx[j][k];
+                }
+            }
+        }
+    }
+    argument = 21;
+    //TEST( &argument );
+
+    /*
+     *******************************************************************
+     *   Kernel 22 -- Planckian distribution
+     *******************************************************************
+     *     EXPMAX= 20.0
+     *       U(n)= 0.99*EXPMAX*V(n)
+     *    DO 22 L= 1,Loop
+     *    DO 22 k= 1,n
+     *                                          Y(k)= U(k)/V(k)
+     *       W(k)= X(k)/( EXP( Y(k)) -1.0)
+     * 22 CONTINUE
+     */
+
+#pragma intrinsic exp
+    expmax = 20.0;
+    u[n-1] = 0.99*expmax*v[n-1];
+    for ( l=1 ; l<=loop ; l++ ) {
+        for ( k=0 ; k<n ; k++ ) {
+            y[k] = u[k] / v[k];
+            w[k] = x[k] / ( exp( y[k] ) -1.0 );
+        }
+    }
+    argument = 22;
+    //TEST( &argument );
+
+    /*
+     *******************************************************************
+     *   Kernel 23 -- 2-D implicit hydrodynamics fragment
+     *******************************************************************
+     *    DO 23  L= 1,Loop
+     *    DO 23  j= 2,6
+     *    DO 23  k= 2,n
+     *          QA= ZA(k,j+1)*ZR(k,j) +ZA(k,j-1)*ZB(k,j) +
+     *   .          ZA(k+1,j)*ZU(k,j) +ZA(k-1,j)*ZV(k,j) +ZZ(k,j)
+     * 23  ZA(k,j)= ZA(k,j) +.175*(QA -ZA(k,j))
+     */
+
+    for ( l=1 ; l<=loop ; l++ ) {
+        for ( j=1 ; j<6 ; j++ ) {
+            for ( k=1 ; k<n ; k++ ) {
+                qa = za[j+1][k]*zr[j][k] + za[j-1][k]*zb[j][k] +
+                     za[j][k+1]*zu[j][k] + za[j][k-1]*zv[j][k] + zz[j][k];
+                za[j][k] += 0.175*( qa - za[j][k] );
+            }
+        }
+    }
+    argument = 23;
+    //TEST( &argument );
+
+    /*
+     *******************************************************************
+     *   Kernel 24 -- find location of first minimum in array
+     *******************************************************************
+     *     X( n/2)= -1.0E+10
+     *    DO 24  L= 1,Loop
+     *           m= 1
+     *    DO 24  k= 2,n
+     *          IF( X(k).LT.X(m))  m= k
+     * 24 CONTINUE
+     */
+
+    x[n/2] = -1.0e+10;
+    for ( l=1 ; l<=loop ; l++ ) {
+        m = 0;
+        for ( k=1 ; k<n ; k++ ) {
+            if ( x[k] < x[m] ) m = k;
+        }
+    }
+    argument = 24;
+    //TEST( &argument );
+
+    /*
+     *   Epilogue
+     */
+    double TK[2] = {0.0, 0.0};
+
+    for ( k=0 ; k<mk ; k++ ) {
+        times[k][il-1][jr-1] = time[k];
+        fopn[k][il-1][jr-1]  = flopn[k];
+        terrs[k][il-1][jr-1] = terr1[k];
+        npfs[k][il-1][jr-1]  = npfs1[k];
+        csums[k][il-1][jr-1] = csum[k];
+        dos[k][il-1][jr-1]   = total[k];
+    }
+
+    sum = 0.0;
+    for ( k=0 ; k<mk ; k++ ) {
+                        sum += time[k];
+    }
+    TK[0] += sum;
+
+    som = 0.0;
+    for ( k=0 ; k<mk ; k++ ) {
+                        som += flopn[k]*total[k];
+    }
+    TK[1] += som;
+
+    //TRACK( &name );
+
     return;
 }
+
+/* End of File */
+
